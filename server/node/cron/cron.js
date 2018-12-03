@@ -6,11 +6,11 @@ const reSubscriber = require('../controllers/watcher').reSubscriber;
 
 schedule.scheduleJob({hour: 10, minute: 0}, async function () {
     await eventParser();
-    reSubscriber();
+    await reSubscriber();
 });
 
 schedule.scheduleJob({hour: 1, minute: 0}, async function () {
     let date = new Date();
-    date.setDate(date.getDate() - 2);
-    deleteByDate(formatDate(date))
+    date.setDate(date.getDate() - 5);
+    await deleteByDate(formatDate(date))
 });

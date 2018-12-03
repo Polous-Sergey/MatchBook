@@ -8,8 +8,11 @@ let wsm;
 
 let subscriptions = [];
 
-function reSubscriber() {
+async function reSubscriber() {
     console.log('restart socket...');
+
+    let events = await eventToday();
+    if (events.length === 0) return console.log('no event');
 
     wsm = new WebSocket('wss://www.matchbook.com/edge/messages');
 
@@ -30,7 +33,7 @@ function reSubscriber() {
         reSubscriber();
     });
     setTimeout(() => {
-        subscriber();
+        subscriber(events);
     }, 10000)
 }
 
@@ -58,9 +61,7 @@ function eventToday() {
     return Event.find({start: {$gt: Date.now() + 300000}}).populate('horses');
 }
 
-async function subscriber() {
-    let events = await eventToday();
-
+async function subscriber(events) {
     try {
         wsm.send('{"type":"parameters","data":{"currency":"USD","exchange-type":"","language":"en","odds-type":"DECIMAL","price-depth":6,"price-order":"price desc"}}');
 

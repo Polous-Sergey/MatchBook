@@ -128,7 +128,12 @@ async function getJson(req, res) {
     let from = Date.parse(req.query.date);
     let to = new Date(req.query.date).setHours(23, 59, 59, 999);
 
-    let data = await Event.find({start: {$gt: from, $lt: to}}, ['name', 'start', 'created', 'horses']).deepPopulate('horses.prices');
+    let data = await Event.find({
+        start: {
+            $gt: from,
+            $lt: to
+        }
+    }, ['name', 'start', 'created', 'horses']).deepPopulate('horses.prices');
 
     res.json({
         success: true,
@@ -136,11 +141,36 @@ async function getJson(req, res) {
     });
 }
 
-function deleteByDate(date) {
+async function deleteByDate(date) {
     let from = Date.parse(date);
     let to = new Date(date).setHours(23, 59, 59, 999);
 
-    return Event.deleteMany({start: {$gt: from, $lt: to}});
+    let events = await Event.find({start: {$gt: from, $lt: to}}, ['horses']).populate({
+        path: 'horses',
+        select: 'prices'
+    });
+
+    Event.deleteMany({
+        _id: {
+            $in: events.map(event => {
+                Horse.deleteMany({
+                    _id: {
+                        $in: event.horses.map(horse => {
+                            Price.deleteMany({
+                                _id: {
+                                    $in: horse.prices
+                                }
+                            },err => console.error('price', err));
+                            return horse._id
+                        })
+                    }
+                },err => console.error('horse', err));
+                return event._id
+            })
+        }
+    }, err => console.error('event', err));
+
+    return events
 }
 
 async function getJsonList(req, res) {
@@ -190,6 +220,8 @@ function formatDate(date) {
 
     return [year, month, day].join('-');
 }
+
+// eventParser();
 
 module.exports = {
     eventParser,
